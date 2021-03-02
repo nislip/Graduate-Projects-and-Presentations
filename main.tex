@@ -1,0 +1,550 @@
+%
+% Hello! Here's how this works:
+%
+% You edit the source code here on the left, and the preview on the
+% right shows you the result within a few seconds.
+%
+% Bookmark this page and share the URL with your co-authors. They
+% can edit at the same time!
+%
+% You can upload figures, bibliographies, custom classes and
+% styles using the files menu.
+%
+% This presentation is made with the Beamer package. For tutorials
+% and more info, see:
+% http://en.wikipedia.org/wiki/Beamer_(LaTeX)
+%
+% We're still in beta. Please leave some feedback using the link at
+% the top left of this page.
+%
+% Enjoy!
+%
+
+%
+% Choose how your presentation looks.
+%
+% For more themes, color themes and font themes, see:
+% http://deic.uab.es/~iblanes/beamer_gallery/index_by_theme.html
+%
+\documentclass[9pt]{beamer}
+
+%
+% Choose how your presentation looks.
+%
+% For more themes, color themes and font themes, see:
+% http://deic.uab.es/~iblanes/beamer_gallery/index_by_theme.html
+%
+\mode<presentation>
+{
+  \usetheme{Antibes}      % or try Darmstadt, Madrid, Warsaw, ...
+  \usecolortheme{default} % or try albatross, beaver, crane, ...
+  \usefonttheme{professionalfonts}  % or try serif, structurebold, ...
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamertemplate{caption}[numbered]
+} 
+
+\usepackage[english]{babel}
+\usepackage{listings}
+\usepackage[utf8x]{inputenc}
+\usepackage{amsmath}
+\usepackage{color, xcolor}
+\usepackage{graphics}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{changepage}
+\usepackage{pgfpages}
+\usepackage{pdfpages}
+\setbeameroption{show notes on second screen=right}
+\setbeamertemplate{note page}{\pagecolor{yellow!5}\insertnote}\usepackage{palatino}
+
+
+% On writeLaTeX, these lines give you sharper preview images.
+% You might want to comment them out before you export, though.
+\usepackage{pgfpages}
+\pgfpagesuselayout{resize to}[%
+  physical paper width=8in, physical paper height=6in]
+
+\title[MATH 545]{Singular Value Decomposition (SVD)}
+\author{Nate Islip}
+\institute{Eastern Washington University}
+\date{2/12/2020}
+
+\addtobeamertemplate{navigation symbols}{}{%
+    \usebeamerfont{footline}%
+    \usebeamercolor[fg]{footline}%
+    \hspace{1em}%
+    \insertframenumber/\inserttotalframenumber
+}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+\usepackage{hyperref}
+
+%\usepackage{pdfpages}
+%\setbeameroption{show notes on second screen=right}
+%\setbeamertemplate{note %page}{\pagecolor{yellow!5}\insertnote}\usepackage{palatino}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BEGIN DOCUMENT 
+
+
+% TITLE PAGE 
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{document}
+
+% Uncomment these lines for an automatically generated outline.
+%\begin{frame}{Outline}
+%  \tableofcontents
+%\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Slide Contents}
+
+\frame[allowframebreaks]%
+{\frametitle{Table of Contents}\tableofcontents}
+    
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction \& Application}
+
+\begin{frame}{Introduction:}
+    \begin{itemize}
+        \item \textbf{SVD} is one of the most important \textbf{matrix factorization} and is a foundational concept to other concepts (PCA, FFT).
+        \item Use \textbf{SVD} to obtain \textbf{low-rank approximations} to matrices and to perform \textbf{pseudo-inverses of non-square matrices} to find the solution of a system of equations $Ax = b$. 
+        \item SVD is the basis for many techniques in \textbf{dimensional reduction}
+        \begin{itemize}
+            \item PCA, KLT, EOF's, CCA to name a few
+        \end{itemize}
+    \end{itemize}
+    \note[item]{test}
+\end{frame}
+
+
+
+\begin{frame}{Applications:}
+    \begin{itemize}
+        \item Fast Fourier Transform (FFT)
+        \item Principal Component Analysis (PCA) in Statistics
+        \item Dynamic Mode Decomposition (DMO) in Fluid Dynamics
+        \begin{itemize}
+            \item Proper orthogonal decomposition (POD)
+            \begin{itemize}
+                \item SVD Algorithm applied to PDE. 
+                \item Important in studying complex spatio temporal systems
+            \end{itemize}
+        \end{itemize}
+    \end{itemize}
+    
+    \begin{figure}
+            \includegraphics[scale=0.20]{Model reduction for flow around a cylinder.png}
+            \caption{Model Reduction for flow around a cylinder}
+    \end{figure}
+    
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{SVD Notation and Properties}
+
+\subsection{Definitions:}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}{Notation: Full SVD}
+    \begin{itemize}
+        \item Let $X$ be a large data matrix where $X  \in \mathbb{C}^{n\times m}$
+        
+        \begin{equation}
+            \mathbf{X} = 
+            \begin{bmatrix}
+                    \vdots & \vdots & & \vdots\\
+                    x_{1} & x_{2} & \hdots & x_{m}\\
+                    \vdots & \vdots & & \vdots
+            \end{bmatrix}
+        \end{equation}
+        
+        and the columns $x_{k} \in \mathbb{C}^{n}$ may be measurements from simulations or experiments ($k$th distinct set of measurements).
+        
+        \item The SVD is a \textit{unique matrix decomposition} that exists for every complex valued matrix $\mathbf{X} \in \mathbb{C}^{n \times m}$.
+        
+        \begin{equation}
+            \mathbf{X} = \mathbf{U\Sigma V}^{*}
+        \end{equation}
+        
+        $\mathbf{U} \in \mathbb{C}^{n \times n}$ and $\mathbf{V} \in \mathbb{C}^{m \times m}$ are \textbf{unitary matrices} with orthonormal columns, and $\mathbf{\Sigma} \in \mathbb{R}^{n \times m}$ is a matrix with real, non-negative entries on the diagonal zeros off the diagonal.\footnotemark
+        
+        \footnotetext[1]{$*$ denote the complex conjugate transpose}
+    \end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}{Notation: Economy SVD}
+    \begin{itemize}
+        \item When $n \geq m$, the matrix $\mathbf{\Sigma}$ has at most $m$ non-zero elements on the diagonal. Therefore, we can represent $\mathbf{X}$ as the \textbf{economy SVD}.
+        
+        \begin{equation}
+            \mathbf{x} = \mathbf{U\Sigma V}^{*} = 
+            \begin{bmatrix}
+                    \hat{\mathbf{U}} & \hat{\mathbf{U}}
+            \end{bmatrix}
+            \begin{bmatrix}
+                    \hat{\mathbf{\Sigma}}\\
+                    \mathbf{0}
+            \end{bmatrix}
+            \mathbf{V}^{*}
+            = \mathbf{\hat{U}\hat{\Sigma}V}^{*}
+        \end{equation}
+    
+        \item The columns of $\mathbf{U}$ are called \textit{left singular vectors} of $\mathbf{X}$ and the columns of $\mathbf{V}$ are called \textit{right singular vectors}. 
+        \item Diagonal elements of $\mathbf{\Sigma}\in \mathbb{C}^{m \times m}$ are called \textit{singular values} and they are ordered from \textit{largest to greatest}.
+    \end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}{Notation: SVD Schematic}
+    \begin{figure}
+        \includegraphics[scale=0.40]{Schemtic of SVD.PNG}
+        \caption{SVD and Economy SVD schematic}
+    \end{figure}
+\end{frame}
+
+\subsection{Computation:}
+\begin{frame}{Coding Full and Economy SVD: Input }
+\begin{center}
+    Python Implementation
+\end{center}
+    \lstinputlisting[language=Python]{SVD_Implementation.py}
+\begin{center}
+    Matlab/Octave Implementation
+\end{center}
+    \lstinputlisting[language=Octave]{SVD_Octave_Implementation.m}
+    
+\end{frame}
+
+\begin{frame}{Coding Full SVD: Output}
+    
+    \begin{displaymath}
+    \mathbf{U} = 
+        \begin{bmatrix}
+            0.090948 &	-0.87&	0.18788	&0.26935&	-0.35633\\
+            0.69151	&0.078063&	0.6658&	-0.15117&	0.22267\\
+            0.0066421&	0.15537	&0.099151&	-0.5997&	-0.77868\\
+            -0.26758&	0.41429&	0.48811&	0.63234&	-0.34446\\
+            -0.66476&	-0.20303&	0.52281&	-0.38092&	0.31375\\
+        \end{bmatrix}_{5 \times 5}
+    \end{displaymath}
+    
+        \begin{displaymath}
+    \mathbf{S} = 
+        \begin{bmatrix}
+            2.3183&	0&	0\\
+            0&	1.6126&	0\\
+            0	&0	&0.74531\\
+            0&	0&	0\\
+            0&	0&	0\\
+        \end{bmatrix}_{5 \times 3}
+    \end{displaymath}
+    
+    \begin{displaymath}
+    \mathbf{V} = 
+        \begin{bmatrix}
+            0.44677&	0.84636&	-0.28993\\
+            0.057677&	-0.35065&	-0.93473\\
+            -0.89279&	0.40089&	-0.20548\\
+        \end{bmatrix}_{3 \times 3}
+    \end{displaymath}
+\end{frame}
+
+\begin{frame}{Coding Economy SVD: Output}
+    
+    \begin{displaymath}
+    \mathbf{\hat{U}} = 
+        \begin{bmatrix}
+            0.090948&	-0.87&	0.18788\\
+            0.69151	&0.078063&	0.6658\\
+            0.0066421&	0.15537	&0.099151\\
+            -0.26758&	0.41429	&0.48811\\
+            -0.66476&	-0.20303&	0.52281\\
+        \end{bmatrix}_{5 \times 3}
+    \end{displaymath}
+    
+        \begin{displaymath}
+    \mathbf{\hat{S}} = 
+        \begin{bmatrix}
+            2.3183&	0&	0\\
+            0&	1.6126&	0\\
+            0&	0&	0.74531\\
+        \end{bmatrix}_{3 \times 3}
+    \end{displaymath}
+    
+    \begin{displaymath}
+    \mathbf{\hat{V}} = 
+        \begin{bmatrix}
+            0.44677	&0.84636&	-0.28993\\
+            0.057677&	-0.35065&	-0.93473\\
+            -0.89279&	0.40089&	-0.20548\\
+        \end{bmatrix}_{3 \times 3}
+    \end{displaymath}
+
+    
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Approximation:}
+\begin{frame}{Notation: Matrix Approximation}
+    \begin{theorem}[Eckart-Young 170]
+        The optimal rank-r approximation to $\mathbf{X}$, in a least squares sense, is given by the rank-r SVD truncation $\mathbf{\Tilde{X}}$
+        
+        \begin{equation}
+            \text{argmin}_{\Tilde{X}, \text{s.t} r(\Tilde{X}) = r} ||\mathbf{X} - \Tilde{\mathbf{X}}||_{F} = \Tilde{\mathbf{U}}\Tilde{\mathbf{\Sigma}}\Tilde{\mathbf{V}}
+        \end{equation}
+        
+        Here, $\mathbf{\Tilde{U}}$ and $\mathbf{\Tilde{V}}$ denote the first $r$ leading columns of $\mathbf{U}$ and $\mathbf{V}$, and $\mathbf{\Tilde{\Sigma}}$ contains the leading $r \times r$ sub-block of $\mathbf{\Sigma}$. $||\cdot||_{F}$ is the Frobenius norm\footnotemark. 
+        
+        Because $\mathbf{\Sigma}$ is diagonal, the rank-r SVD approximation is given by the sum of $r$ distinct rank-1 matrices.
+    \end{theorem}
+    \footnotetext[2]{$||\cdot||$ is the matrix norm of an $m×n$ matrix A (Euclidean norm)}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Truncation:}
+\begin{frame}{Notation: Truncation}
+
+\begin{itemize}
+    \item Truncated SVD Basis is denoted as $\mathbf{\Tilde{X}} = \mathbf{\Tilde{U}}\mathbf{\Tilde{\Sigma}}\mathbf{\Tilde{V}}^{*}$. The resulting \textbf{dyadic summation}
+    
+    \begin{equation}
+        \mathbf{\Tilde{X}} = \sum_{k=1}^{r}\sigma_{k}\mathbf{u}_{k}\mathbf{v}_{k}^{*}
+    \end{equation}
+    
+    \item For a given rank, $r$, there is no better approximation for $\mathbf{X}$, in the $\ell_{2}$ sense, then the truncated SVD approximation. 
+\end{itemize}
+
+\begin{alertblock}{Remark:}
+    Numerous examples of data sets contain \textbf{high dimensional measurements}, however, there are \textbf{dominant low dimensional patterns} in data, and $\Tilde{\mathbf{U}}$ provides a transformation from \textit{High} to \textit{Low} dimensional pattern space. This allows for better analysis and visualization.
+\end{alertblock}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Properties and Manipulations}
+\begin{frame}{Properties and Manipulations: Interpretation as Dominant Correlations}
+    \begin{itemize}
+        \item The SVD is closely related to an eigenvalue problem involving the correlation matrices $\mathbf{XX^{*}}$ and $\mathbf{X^{*}X}$.
+        \item Plugging equation (3) into the row wise correlation matrix $\mathbf{XX^{*}}$ and the column-wise correlation matrix $\mathbf{X^{*}X}$ we find, 
+        
+        \begin{equation}
+            \mathbf{XX^{*}} = U \begin{bmatrix}
+                \hat{\Sigma}^{2} & 0 \\
+                0 & 0 \\
+            \end{bmatrix}
+            \mathbf{U^{*}}
+        \end{equation}
+        
+        \begin{equation}
+            \mathbf{X^{*}X} = \mathbf{V\hat{\Sigma}^{2} V^{*}} = \mathbf{V\hat{\Sigma}^{2}}
+        \end{equation}
+        
+        \item If $\mathbf{X}$ is \textbf{self-adjoint} (i.e. $\mathbf{X} = \mathbf{X}^{*}$), then the singular values of $\mathbf{X}$ are equal to the absolute value of the eigenvalues of $\mathbf{X}$.
+        \item $\mathbf{\Sigma}$ are the square roots of the \textbf{eigenvalues} of the column-wise correlation matrix $\mathbf{XX^{*}}$ 
+        \item Columns of $\mathbf{V}$ are \textbf{eigenvectors} of $\mathbf{X^{*}X}$
+        \item $\mathbf{V}$ captures correlation in the rows of $\mathbf{X}$
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Properties and Manipulations: Interpretation as Dominant Correlations}
+        \begin{figure}
+        \includegraphics[scale=0.40]{schemtaic of scorrelation matrices.PNG}
+        \caption{Schematic of Correlation matrices}
+    \end{figure}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Examples: PCA and Eigenfaces}
+\subsection{PCA Introduction \& Computation:}
+
+\begin{frame}{PCA Set-up:}
+    \begin{itemize}
+        \item PCA provides \textbf{hierarchical coordinate system to represent high-dimensional correlated data}.
+        \item PCA pre-processes the data by \textbf{mean subtraction and setting the variance to unity before performing the SVD}.
+        
+        \begin{displaymath}
+        \mathbf{X} = 
+            \begin{bmatrix}
+                \hdots & \hdots & x_{1} & \hdots & \hdots \\
+                \hdots & \hdots & x_{1} & \hdots & \hdots \\
+                 & & \vdots & & \\
+                 \hdots & \hdots & x_{n} & \hdots & \hdots \\
+            \end{bmatrix}
+        \end{displaymath}
+        
+        \item PCA Steps:
+        
+        \begin{enumerate}
+            \item Compute mean row 
+            \item Subtract Mean $\mathbf{B = X - \overline{X}}$
+            \item Compute Covariance Matrix of rows of $\mathbf{B}$
+            \item $\mathbf{T = BV}$ $\implies$ $\mathbf{T = U\Sigma}$ where $B = \mathbf{U\Sigma V^{T}}$ \footnotemark
+        \end{enumerate}
+        
+        \footnotetext[1]{Here, we use SVD, we could also compute the eigen values and vectors of the covariance matrix.}
+        
+    \end{itemize}
+\end{frame}
+
+\subsection{Eigenfaces Example:}
+\begin{frame}{Eigenfaces Example: Setup}
+\begin{itemize}
+    \item Eigenfaces are an example of SVD and PCA. We apply PCA to facial images to extract the most dominant correlation between images. 
+    
+    \begin{figure}
+        \includegraphics[scale=0.30]{yale eigen faces part 1.PNG}
+        \caption{(Left) single image for each person (Right) and all images for each person.}
+    \end{figure}
+    
+    \item Use PCA to extract \textbf{most dominant correlations between images}.
+    \item Result? set of \textbf{eigenfaces} that define a \textbf{new coordinate system}
+    
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Eigenfaces Example: Computation}
+    \begin{itemize}
+        \item First 36 individuals used as \textbf{training data}, holding back two people as a \textbf{test set}. 
+        \begin{enumerate}
+            \item Re-shape each image into a large column vector
+            \item Average face is computed and subtracted from each column vector. 
+            \item Mean-subtracted image vectors are stacked HZ as columns in $\mathbf{X}$. 
+            \item Take \textbf{SVD of mean-subtracted matrix} $\mathbf{X}$, giving the PCA
+        \end{enumerate}
+        \item Attempt to approximately represent an image that was not in the training data. 
+        \item How well does a rank-r SVD basis approximates the image using
+        $\Tilde{\mathbf{x}}_{test} = \mathbf{\Tilde{U}\Tilde{U}^{*}\mathbf{x}_{test}}$
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Eigenfaces Example: Schematic}
+        \begin{figure}
+        \includegraphics[scale=0.30]{eigenfaces schematic.PNG}
+        \caption{Schematic of procedure to obtain eigenfaces}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Eigenfaces Example: Eigenface approximation}
+    \begin{figure}
+        \includegraphics[scale=0.30]{eigenfaces with r.PNG}
+        \caption{Face of various order $r$}
+    \end{figure}
+\end{frame}
+
+\section{Truncation \& Alignment}
+
+\begin{frame}{Truncation \& Alignment}
+    \begin{itemize}
+        \item Deciding \textbf{how many singular values} is an important concept when discussing the SVD. 
+        \item There are two, commonly used, techniques used in truncation of singular values
+        \begin{itemize}
+            \item \textbf{Method 1:} truncate SVD at a rank $r$ that captures a pre-determined amount of the variance or energy in the original data (90\% or 99\% truncation).
+            \item \textbf{Method 2:} Identify "knees" or "elbows". Helps distinguish \textit{important patterns, from noise}. 
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Optimal Threshold}
+ 
+    \begin{itemize}
+    
+    \item So, how do we choose our optimal rank to truncate the \textbf{SVD}
+    
+    \begin{align*}
+        \mathbf{X} = \mathbf{U\Sigma V}^{T} && \mathbf{X} = \mathbf{\Tilde{U}\Tilde{\Sigma}\Tilde{V}^{T}}
+    \end{align*}
+    
+    \item \textbf{Method 1:} plot the log of the singular values, $\log \sigma_{j}$, versus $j$ and identify elbow (unfortunately, does not work well) .
+    
+    \item \textbf{Why?} Create a balance between model \textbf{simplicity} and \textbf{complexity}.
+    
+    \item \textbf{Method 2: } Technique designed to identify an optimal rank $r$ to truncate (Gavish and Donoho, 2014). Consider, \\
+    
+    \begin{equation}
+        \mathbf{X} =\mathbf{X}_{true} + \gamma\mathbf{X}_{noise}
+    \end{equation}
+    
+    \end{itemize}
+    
+\end{frame}
+
+    
+\begin{frame}{Optimal Threshold: Continued}
+    \begin{itemize}
+        \item Now, let us observe \textit{two cases} where we can use \textbf{Method 2}, given by Gavish and Donoho [2].\\
+        
+        \textbf{Case (1): } $\mathbf{X}$ square, and $\gamma$ is known. 
+        
+        \begin{equation}
+            \tau = \frac{4}{\sqrt{3}}\gamma \sqrt{n}
+        \end{equation}
+        
+        \textbf{Case (2): } $\mathbf{X}$ rectangular, $\gamma$ unknown
+        
+        \begin{equation}
+            \tau = \lambda(\beta)\sigma_{med}
+        \end{equation}
+        
+    \end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Computational Cost:}
+
+\begin{frame}{Computational Cost:}
+    \begin{itemize}
+        \item Assuming, if $A$ is $m \times n$ then $m >> n$ s.t. $n^{2}$ fits in memory on a single machine [3]. 
+        \item Example: $m = 1 \text{trillion}$ and $n = 1,000$ (1 trillion movies each has a thousand features. 
+        \item Computing SVD requires $O(mn^{2})$ work. Computing the top $k$ singular values and vectors costs $O(mk^{2})$ work. 
+        \begin{itemize}
+            \item Here we set $k$ accordingly to how many singular values we would like.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bibliography}
+
+\begin{frame}{Citations:}
+    \begin{enumerate}
+        \item Brunton, S. L., & Kutz, J. N. (2019). Data-driven science and engineering: Machine learning, dynamical systems, and control. Cambridge University Press.
+        \item The optimal hard threshold for singular values is $4/\sqrt{3}$, by M. Gavish and
+        D. L. Donoho, IEEE Transactions on Information Theory, 2014
+        \item \url{https://stanford.edu/~rezab/classes/cme323/S17/notes/lecture17/cme323_lec17.pdf} 
+    \end{enumerate}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
